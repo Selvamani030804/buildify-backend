@@ -6,14 +6,16 @@ dotenv.config();
 
 const router = express.Router();
 
-// Initialize Gemini with the API Key
+// Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// FIXED: Use the correct, stable model name (1.5 Flash is fast and free)
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+// ⚠️ USER REQUESTED MODEL: gemini-2.5-flash
+// If this fails (404 Error), change this line to: "gemini-1.5-flash"
+const MODEL_NAME = "gemini-2.5-flash"; 
+const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
 // --- Helper: Clean JSON String ---
-// This removes the ```json ... ``` wrapper if Gemini adds it
+// This prevents the "Black Screen" by removing ```json wrappers
 const cleanJSON = (text) => {
     return text.replace(/```json/g, '').replace(/```/g, '').trim();
 };
@@ -22,14 +24,14 @@ const cleanJSON = (text) => {
 router.post('/generate-names', async (req, res) => {
     try {
         const { description } = req.body;
-        console.log(`💡 Generating names for: ${description}`);
+        console.log(`💡 Generating names with ${MODEL_NAME}...`);
 
         const prompt = `
             Act as a creative branding expert.
             Generate 10 unique, modern business names for: "${description}".
             Rules:
             1. Avoid generic names.
-            2. Prefer short, punchy, coined words (like "Spotify" or "Uber").
+            2. Prefer short, punchy, coined words.
             3. Return ONLY a JSON object with a "names" array.
             Example: { "names": ["Vixal", "Qore", "Luminary"] }
         `;
@@ -39,15 +41,14 @@ router.post('/generate-names', async (req, res) => {
         
         try {
             const json = JSON.parse(text);
-            res.json(json); // Returns { names: [...] }
+            res.json(json); 
         } catch (e) {
-            // Fallback if JSON fails
             res.json({ names: text.split(',').slice(0, 5) });
         }
 
     } catch (error) {
-        console.error("Name Gen Error:", error);
-        res.status(500).json({ error: "Failed to generate names" });
+        console.error("Name Gen Error:", error.message);
+        res.status(500).json({ error: `Model ${MODEL_NAME} failed. Try gemini-1.5-flash.` });
     }
 });
 
@@ -63,12 +64,12 @@ router.post('/generate-slogans', async (req, res) => {
 
         res.json(json);
     } catch (error) {
-        console.error("Slogan Error:", error);
-        res.status(500).json({ error: "Failed to generate slogans" });
+        console.error("Slogan Error:", error.message);
+        res.status(500).json({ error: "Slogan generation failed" });
     }
 });
 
-// --- ROUTE 3: Chatbot (Fixed) ---
+// --- ROUTE 3: Chatbot (Fixed History Structure) ---
 router.post('/chat', async (req, res) => {
     try {
         const { message, context } = req.body;
@@ -91,12 +92,11 @@ router.post('/chat', async (req, res) => {
         const response = await result.response;
         const text = response.text();
 
-        // FIXED: Frontend expects 'reply', not 'success'
         res.json({ reply: text });
 
     } catch (error) {
-        console.error("Chat Error:", error);
-        res.status(500).json({ error: "Chat failed" });
+        console.error("Chat Error:", error.message);
+        res.status(500).json({ error: "Chat failed. Model might be invalid." });
     }
 });
 
@@ -104,7 +104,7 @@ router.post('/chat', async (req, res) => {
 router.post('/validate', async (req, res) => {
     try {
         const { idea, industry } = req.body;
-        console.log(`📊 Validating: ${idea}`);
+        console.log(`📊 Validating with ${MODEL_NAME}...`);
 
         const prompt = `
             Analyze this startup idea: "${idea}" in the "${industry}" industry.
@@ -124,7 +124,7 @@ router.post('/validate', async (req, res) => {
         res.json({ analysis: json });
 
     } catch (error) {
-        console.error("Validation Error:", error);
+        console.error("Validation Error:", error.message);
         res.status(500).json({ error: "Validation failed" });
     }
 });
@@ -133,11 +133,11 @@ router.post('/validate', async (req, res) => {
 router.post('/generate-ui', async (req, res) => {
     try {
         const { description } = req.body;
-        console.log(`🎨 Generating UI for: ${description}`);
+        console.log(`🎨 Generating UI with ${MODEL_NAME}...`);
 
         const prompt = `
             Create a UI Design System for a website about: "${description}".
-            Return ONLY valid JSON.
+            Return ONLY valid JSON. Do NOT use markdown.
             Structure:
             {
                 "colorPalette": [
@@ -158,14 +158,12 @@ router.post('/generate-ui', async (req, res) => {
 
         const result = await model.generateContent(prompt);
         const text = cleanJSON(result.response.text());
-        
         const json = JSON.parse(text);
 
-        // FIXED: Frontend expects the object inside 'design'
         res.json({ design: json });
 
     } catch (error) {
-        console.error("UI Gen Error:", error);
+        console.error("UI Gen Error:", error.message);
         res.status(500).json({ error: "UI Generation failed" });
     }
 });
