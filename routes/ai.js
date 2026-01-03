@@ -9,13 +9,11 @@ const router = express.Router();
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// ⚠️ USER REQUESTED MODEL: gemini-2.5-flash
-// If this fails (404 Error), change this line to: "gemini-1.5-flash"
-const MODEL_NAME = "gemini-2.5-flash"; 
+// FIXED: Back to the stable model that works for everyone
+const MODEL_NAME = "gemini-1.5-flash"; 
 const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
 // --- Helper: Clean JSON String ---
-// This prevents the "Black Screen" by removing ```json wrappers
 const cleanJSON = (text) => {
     return text.replace(/```json/g, '').replace(/```/g, '').trim();
 };
@@ -69,12 +67,11 @@ router.post('/generate-slogans', async (req, res) => {
     }
 });
 
-// --- ROUTE 3: Chatbot (Fixed History Structure) ---
+// --- ROUTE 3: Chatbot ---
 router.post('/chat', async (req, res) => {
     try {
         const { message, context } = req.body;
         
-        // Start a chat session
         const chat = model.startChat({
             history: [
                 {
@@ -129,7 +126,7 @@ router.post('/validate', async (req, res) => {
     }
 });
 
-// --- ROUTE 5: UI/UX Design Generator (Fixed Black Screen) ---
+// --- ROUTE 5: UI/UX Design Generator ---
 router.post('/generate-ui', async (req, res) => {
     try {
         const { description } = req.body;
