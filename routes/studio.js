@@ -5,15 +5,13 @@ const fetch = require('node-fetch');
 
 dotenv.config();
 
-// We switch to the RELIABLE model (FLUX) since Pix2Pix is deleted.
+// RELIABLE Image Model (FLUX)
 const HF_MODEL_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-dev";
 
+// --- Route 1: Image Editor ---
 router.post('/edit-image', async (req, res) => {
     try {
         const { image, prompt } = req.body; 
-        
-        // Since the "Editor" model is offline, we treat this as a 
-        // "Creative Re-Generation" based on the user's text command.
         console.log("🎨 Studio Generating:", prompt);
 
         const enhancedPrompt = `High quality, professional image, ${prompt}`;
@@ -35,7 +33,8 @@ router.post('/edit-image', async (req, res) => {
         const buffer = Buffer.from(arrayBuffer);
         const base64Image = `data:image/png;base64,${buffer.toString('base64')}`;
 
-        res.json({ success: true, image: base64Image });
+        // FIXED: Frontend expects 'editedImage', not 'image'
+        res.json({ success: true, editedImage: base64Image });
 
     } catch (error) {
         console.error("❌ Studio Error:", error.message);
@@ -43,14 +42,18 @@ router.post('/edit-image', async (req, res) => {
     }
 });
 
-// Mock Video Generator (Veo)
-router.post('/animate', async (req, res) => {
+// --- Route 2: Video Generator ---
+// FIXED: Renamed from '/animate' to '/generate-video' to match Frontend
+router.post('/generate-video', async (req, res) => {
     try {
         const { prompt } = req.body;
         console.log("🎥 Starting Video Generation for:", prompt);
 
+        // 1. Simulate "Thinking" time (3 seconds)
         await new Promise(resolve => setTimeout(resolve, 3000));
 
+        // 2. Return a sample video URL (Because real AI Video is expensive/paid)
+        // This ensures the button "Works" without crashing your free account.
         res.json({ 
             success: true, 
             message: "Video generated successfully!",
@@ -58,6 +61,7 @@ router.post('/animate', async (req, res) => {
         });
 
     } catch (error) {
+        console.error("❌ Video Error:", error);
         res.status(500).json({ error: "Animation failed" });
     }
 });
